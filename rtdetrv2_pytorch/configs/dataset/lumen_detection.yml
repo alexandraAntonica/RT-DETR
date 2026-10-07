@@ -1,0 +1,42 @@
+task: detection
+
+evaluator:
+  type: CocoEvaluator
+  iou_types: ['bbox', ]
+
+num_classes: 1
+remap_mscoco_category: False
+
+
+train_dataloader:
+  type: DataLoader
+  dataset:
+    type: CocoDetection
+    img_folder: C:\Users\AlexandraAntonica\tunnel-travelling-experiments\RT-DETR\bronchoscopy_data\train\images
+    ann_file: C:\Users\AlexandraAntonica\tunnel-travelling-experiments\RT-DETR\bronchoscopy_data\train_samples.json
+    return_masks: False
+    transforms:
+      type: Compose
+      ops: ~
+  shuffle: True
+  num_workers: 4
+  drop_last: True
+  collate_fn:
+    type: BatchImageCollateFunction
+
+
+val_dataloader:
+  type: DataLoader
+  dataset:
+    type: CocoDetection
+    img_folder: C:\Users\AlexandraAntonica\tunnel-travelling-experiments\RT-DETR\bronchoscopy_data\val\images
+    ann_file: C:\Users\AlexandraAntonica\tunnel-travelling-experiments\RT-DETR\bronchoscopy_data\validation_samples.json
+    return_masks: False
+    transforms:
+      type: Compose
+      ops: ~
+  shuffle: False
+  num_workers: 4
+  drop_last: False
+  collate_fn:
+    type: BatchImageCollateFunction
