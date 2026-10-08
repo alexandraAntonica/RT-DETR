@@ -12,8 +12,8 @@ train_dataloader:
   type: DataLoader
   dataset:
     type: CocoDetection
-    img_folder: C:\Users\AlexandraAntonica\tunnel-travelling-experiments\RT-DETR\bronchoscopy_data\train\images
-    ann_file: C:\Users\AlexandraAntonica\tunnel-travelling-experiments\RT-DETR\bronchoscopy_data\train_samples.json
+    img_folder: /media/scratch/Bronchoscopy/bronchoscopy_data/train/images
+    ann_file: /media/scratch/Bronchoscopy/bronchoscopy_data/train_samples.json
     return_masks: False
     transforms:
       type: Compose
@@ -29,8 +29,8 @@ val_dataloader:
   type: DataLoader
   dataset:
     type: CocoDetection
-    img_folder: C:\Users\AlexandraAntonica\tunnel-travelling-experiments\RT-DETR\bronchoscopy_data\val\images
-    ann_file: C:\Users\AlexandraAntonica\tunnel-travelling-experiments\RT-DETR\bronchoscopy_data\validation_samples.json
+    img_folder: /media/scratch/Bronchoscopy/bronchoscopy_data/val/images
+    ann_file: /media/scratch/Bronchoscopy/bronchoscopy_data/validation_samples.json
     return_masks: False
     transforms:
       type: Compose

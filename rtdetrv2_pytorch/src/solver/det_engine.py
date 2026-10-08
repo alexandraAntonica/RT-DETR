@@ -119,6 +119,17 @@ def evaluate(model: torch.nn.Module, criterion: torch.nn.Module, postprocessor, 
 
         outputs = model(samples)
 
+        # validation loss: in eval mode the model only returns final-layer predictions,
+        # so this covers loss_vfl / loss_bbox / loss_giou of the last decoder layer only
+        # (no aux / encoder / denoising terms, unlike the training loss)
+        for t in targets:
+            if t['boxes'].numel() > 0 and t['boxes'].max() > 1.5:
+                raise ValueError('Validation loss expects normalized cxcywh boxes; add '
+                    "{type: ConvertBoxes, fmt: 'cxcywh', normalize: True} to the val_dataloader transforms.")
+        loss_dict = criterion(outputs, targets)
+        loss_dict_reduced = dist_utils.reduce_dict(loss_dict)
+        metric_logger.update(loss=sum(loss_dict_reduced.values()), **loss_dict_reduced)
+
         # TODO (lyuwenyu), fix dataset converted using `convert_to_coco_api`?
         orig_target_sizes = torch.stack([t["orig_size"] for t in targets], dim=0)
         
@@ -143,8 +154,7 @@ def evaluate(model: torch.nn.Module, criterion: torch.nn.Module, postprocessor, 
         coco_evaluator.accumulate()
         coco_evaluator.summarize()
 
-    stats = {}
-    # stats = {k: meter.global_avg for k, meter in metric_logger.meters.items()}
+    stats = {k: meter.global_avg for k, meter in metric_logger.meters.items()}
     if coco_evaluator is not None:
         if 'bbox' in iou_types:
             stats['coco_eval_bbox'] = coco_evaluator.coco_eval['bbox'].stats.tolist()

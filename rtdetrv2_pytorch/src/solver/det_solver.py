@@ -73,12 +73,18 @@ class DetSolver(BaseSolver):
                 self.device
             )
 
-            # TODO 
+            # TODO
             for k in test_stats:
+                # scalar entries are validation losses, list entries are COCO metrics
+                if not isinstance(test_stats[k], list):
+                    if self.writer and dist_utils.is_main_process():
+                        self.writer.add_scalar(f'Test/{k}', test_stats[k], epoch)
+                    continue
+
                 if self.writer and dist_utils.is_main_process():
                     for i, v in enumerate(test_stats[k]):
                         self.writer.add_scalar(f'Test/{k}_{i}'.format(k), v, epoch)
-            
+
                 if k in best_stat:
                     best_stat['epoch'] = epoch if test_stats[k][0] > best_stat[k] else best_stat['epoch']
                     best_stat[k] = max(best_stat[k], test_stats[k][0])

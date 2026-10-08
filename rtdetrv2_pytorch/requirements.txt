@@ -7,4 +7,4 @@ scipy
 packaging
 pycocotools
 onnx
-onnxruntime-gpu
+onnxruntime-gpumatplotlib
