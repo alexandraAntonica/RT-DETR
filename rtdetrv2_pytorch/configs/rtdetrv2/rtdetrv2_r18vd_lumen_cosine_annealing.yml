@@ -1,0 +1,60 @@
+__include__: [
+  '../dataset/lumen_detection.yml',
+  '../runtime.yml',
+  './include/dataloader.yml',
+  './include/optimizer_cosine.yml',
+  './include/rtdetrv2_r50vd.yml',
+]
+
+
+output_dir: ./output/rtdetrv2_r18vd_lumen_cosine
+checkpoint_freq: 2 # extra checkpointXXXX.pth every 5 epochs; best.pth / last.pth are saved every epoch
+
+
+PResNet:
+  depth: 18
+  freeze_at: -1
+  freeze_norm: False
+  pretrained: True
+
+
+HybridEncoder:
+  in_channels: [128, 256, 512]
+  hidden_dim: 256
+  expansion: 0.5
+
+
+RTDETRTransformerv2:
+  num_layers: 3
+
+
+epoches: 5
+
+
+lr_scheduler:
+  type: CosineAnnealingLR
+  T_max: 5 # number of epochs it takes for the LR to reach eta_min
+  eta_min: 0.000001
+
+lr_warmup_scheduler:
+  type: LinearWarmup
+  warmup_duration: 150
+
+train_dataloader:
+  dataset: 
+    transforms:
+      policy:
+        epoch: 4 # when the augmentations stop
+  collate_fn:
+    scales: ~
+
+
+# ConvertBoxes is needed for the validation loss (criterion expects normalized cxcywh);
+# COCO metrics are unaffected since they use the annotation file, not these targets
+val_dataloader:
+  dataset:
+    transforms:
+      ops:
+        - {type: Resize, size: [640, 640]}
+        - {type: ConvertPILImage, dtype: 'float32', scale: True}
+        - {type: ConvertBoxes, fmt: 'cxcywh', normalize: True}

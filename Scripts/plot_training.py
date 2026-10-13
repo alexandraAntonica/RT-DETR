@@ -4,12 +4,13 @@ Reads `<output_dir>/log.txt` (one JSON line per epoch) and, if present, the Tens
 files in `<output_dir>/summary` for the per-iteration learning rate of every param group.
 
 Usage:
-    python tools/plot_training.py output/rtdetrv2_r18vd_lumen
+    python Scripts/plot_training.py output/rtdetrv2_r18vd_lumen
 
 Writes to `<output_dir>/plots/`:
     overview.png         train loss + val loss (top), learning rate (bottom), shared epoch axis
     train_loss.png       total train loss and its final-layer part
     val_loss.png         validation loss
+    total_vs_val.png     total train loss and validation loss
     lr.png               learning rate of every param group, per iteration
     loss_components.png  loss_vfl / loss_bbox / loss_giou, train vs val
 
@@ -33,7 +34,8 @@ COMPONENTS = ['loss_vfl', 'loss_bbox', 'loss_giou']
 TRAIN_COLOR = '#2a78d6'
 VAL_COLOR = '#eb6834'
 LR_COLOR = '#52514e'
-GROUP_COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100']
+# distinct from TRAIN/VAL colors so blue/orange always mean train/validation
+GROUP_COLORS = ['#4a3aa7', '#1baf7a', '#eda100']
 TEXT_COLOR = '#0b0b0b'
 MUTED_COLOR = '#52514e'
 GRID_COLOR = '#e4e3df'
@@ -192,7 +194,7 @@ def main():
     fig, ax = plt.subplots(figsize=(9, 4.5))
     ax.plot(epochs, train_total, color=LR_COLOR, label='Total (incl. aux, encoder, denoising)')
     if train_main:
-        ax.plot(epochs, train_main, color=TRAIN_COLOR, label='Final layer (comparable to validation)')
+        ax.plot(epochs, train_main, color=TRAIN_COLOR, label='Final layer')
     ax.set_title('Training loss')
     ax.set_xlabel('epoch')
     ax.set_ylabel('loss')
@@ -204,11 +206,22 @@ def main():
     if has_val:
         fig, ax = plt.subplots(figsize=(9, 4.5))
         ax.plot(epochs, val_loss, color=VAL_COLOR)
-        ax.set_title('Validation loss (final layer)')
+        ax.set_title('Validation loss')
         ax.set_xlabel('epoch')
         ax.set_ylabel('loss')
         mark_lr_drops(ax, lr_drops, label=True)
         save(fig, out_dir / 'val_loss.png')
+
+        # 3b. total train loss with validation loss (different quantities: total also sums aux/encoder/denoising terms)
+        fig, ax = plt.subplots(figsize=(9, 4.5))
+        ax.plot(epochs, train_total, color=TRAIN_COLOR, label='Train (total)')
+        ax.plot(epochs, val_loss, color=VAL_COLOR, label='Validation')
+        ax.set_title('Total training loss and validation loss')
+        ax.set_xlabel('epoch')
+        ax.set_ylabel('loss')
+        ax.legend(loc='upper center')
+        mark_lr_drops(ax, lr_drops, label=True)
+        save(fig, out_dir / 'total_vs_val.png')
 
     # 4. learning rate
     fig, ax = plt.subplots(figsize=(9, 4.5))
@@ -230,7 +243,7 @@ def main():
     fig, axes = plt.subplots(3, 1, sharex=True, figsize=(9, 9), gridspec_kw={'hspace': 0.3})
     for ax, comp in zip(axes, COMPONENTS):
         if f'train_{comp}' in records[0]:
-            ax.plot(epochs, column(records, f'train_{comp}'), color=TRAIN_COLOR, label='Train (final layer)')
+            ax.plot(epochs, column(records, f'train_{comp}'), color=TRAIN_COLOR, label='Train')
         if f'test_{comp}' in records[0]:
             ax.plot(epochs, column(records, f'test_{comp}'), color=VAL_COLOR, label='Validation')
         ax.set_title(comp)

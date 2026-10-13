@@ -8,8 +8,8 @@ from collections import defaultdict
 
 from PIL import Image
 
-DATA_ROOT = r"C:\Users\AlexandraAntonica\AtlasInteractiveSR\annotated_data"
-SAVE_DIR = r"C:\Users\AlexandraAntonica\tunnel-travelling-experiments\RT-DETR\bronchoscopy_data"
+DATA_ROOT = r"/media/scratch/Bronchoscopy/annotated_data"
+SAVE_DIR = r"/media/scratch/Bronchoscopy/bronchoscopy_data"
 
 id2label = {0: "Lumen"}
 label2id = {v: k for k, v in id2label.items()}

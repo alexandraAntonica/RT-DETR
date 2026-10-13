@@ -7,8 +7,8 @@ __include__: [
 ]
 
 
-output_dir: ./output/rtdetrv2_r18vd_lumen
-checkpoint_freq: 20 # extra checkpointXXXX.pth every 20 epochs; best.pth / last.pth are saved every epoch
+output_dir: ./output/rtdetrv2_r18vd_lumen_multistep_milestone1
+checkpoint_freq: 2 # extra checkpointXXXX.pth every 5 epochs; best.pth / last.pth are saved every epoch
 
 
 PResNet:
@@ -28,18 +28,23 @@ RTDETRTransformerv2:
   num_layers: 3
 
 
-epoches: 120
+epoches: 5
+
 
 lr_scheduler:
   type: MultiStepLR
-  milestones: [90] # 90 epochs after warmup to decrease the learning rate by gamma
+  milestones: [1]
   gamma: 0.1
+
+lr_warmup_scheduler:
+  type: LinearWarmup
+  warmup_duration: 150
 
 train_dataloader:
   dataset: 
     transforms:
       policy:
-        epoch: 117
+        epoch: 8
   collate_fn:
     scales: ~
 
