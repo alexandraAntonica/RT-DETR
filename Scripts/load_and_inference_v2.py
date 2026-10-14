@@ -9,11 +9,10 @@ import sys
 from pathlib import Path
 
 import torch
-import torchvision.ops as ops
 import torchvision.transforms as T
 from PIL import Image, ImageFont, ImageDraw
 
-from filter_contained_bbox import contained_bbox_keep
+from postprocessing import postprocessing
 
 RTDETR_DIR = Path(__file__).resolve().parent.parent / "rtdetrv2_pytorch"
 sys.path.insert(0, str(RTDETR_DIR))
@@ -53,21 +52,9 @@ def detect_boxes(images, model, postprocessor, input_size, device, threshold=0.3
         outputs = model(inputs)
         batch_results = postprocessor(outputs, target_sizes)
 
-    results = []
-    for result in batch_results:
-        keep = result["scores"] > threshold
-        result = {k: v[keep] for k, v in result.items()}
+    results = postprocessing(batch_results, threshold, nms, iou_threshold, filter_contained)
 
-        if nms:
-            keep = ops.batched_nms(result["boxes"], result["scores"], result["labels"], iou_threshold)
-            result = {k: v[keep] for k, v in result.items()}
-
-        if filter_contained:
-            keep = contained_bbox_keep(result["boxes"].tolist(), result["scores"].tolist())
-            result = {k: v[keep] for k, v in result.items()}
-
-        results.append({k: v.cpu() for k, v in result.items()})
-    return results
+    return [{k: v.cpu() for k, v in r.items()} for r in results]
 
 
 def collect_frames(paths):
