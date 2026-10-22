@@ -1,6 +1,6 @@
 import torchvision.ops as ops
 
-def contained_bbox(boxes, scores, margin=5):
+def contained_bbox(boxes, scores, image_size, margin=0.01):
     """
     Filters out bounding boxes that are completely contained within other bounding boxes based on confidence scores.
     Iterate over the boxes sorted by area (largest first). For each box, check if it contains any other boxes. For each list of contained boxes,
@@ -10,11 +10,17 @@ def contained_bbox(boxes, scores, margin=5):
     Parameters:
     boxes: list of [x1, y1, x2, y2] boxes.
     scores: list of confidence scores, one per box.
+    margin: tolerance for the containment check, as a fraction of the image size
+    (e.g. 0.01 = 1%). A box still counts as contained if it sticks out of the
+    bigger box by at most margin * image_width horizontally and
+    margin * image_height vertically.
+
 
     Returns:
     List of indices (into boxes) of the boxes to keep, in their original order.
     """
 
+    width, height = image_size
     areas = [(box[2] - box[0]) * (box[3] - box[1]) for box in boxes]
     order_indices = sorted(range(len(boxes)), key=lambda i: areas[i], reverse=True)
 
@@ -28,8 +34,8 @@ def contained_bbox(boxes, scores, margin=5):
         for j in order_indices:
             if j == i or j in removed:
                 continue
-            if (boxes[j][0] >= boxes[i][0] - margin and boxes[j][1] >= boxes[i][1] - margin and
-                boxes[j][2] <= boxes[i][2] + margin and boxes[j][3] <= boxes[i][3] + margin):
+            if (boxes[j][0] >= boxes[i][0] - margin * width and boxes[j][1] >= boxes[i][1] - margin * height and
+                boxes[j][2] <= boxes[i][2] + margin * width and boxes[j][3] <= boxes[i][3] + margin * height):
                 contained.append(j)
 
         if len(contained) > 0:
@@ -45,9 +51,9 @@ def contained_bbox(boxes, scores, margin=5):
 
     return [i for i in range(len(boxes)) if i not in removed]
 
-def postprocessing(predictions, threshold=0.3, nms=False, iou_threshold=0.5, filtering=False):
+def postprocessing(predictions, image_size, confidence_threshold=0.3, nms=False, iou_threshold=0.5, filtering=False):
     """
-    Apply confidence threshold, then NMS (if nms is True), then removal of contained boxes with contained_bbox (if filtering is True).
+    Apply confidence_threshold, then NMS (if nms is True), then removal of contained boxes with contained_bbox (if filtering is True).
 
     Parameters:
     predictions: list with one dict per image, as returned by the RT-DETR postprocessor, with tensors under the
@@ -63,7 +69,7 @@ def postprocessing(predictions, threshold=0.3, nms=False, iou_threshold=0.5, fil
 
     results = []
     for pred in predictions:
-        keep = pred["scores"] > threshold
+        keep = pred["scores"] > confidence_threshold
         result = {k: v[keep] for k, v in pred.items()}
 
         if nms:
@@ -71,7 +77,7 @@ def postprocessing(predictions, threshold=0.3, nms=False, iou_threshold=0.5, fil
             result = {k: v[keep] for k, v in result.items()}
 
         if filtering:
-            keep = contained_bbox(result["boxes"].tolist(), result["scores"].tolist())
+            keep = contained_bbox(result["boxes"].tolist(), result["scores"].tolist(), image_size)
             result = {k: v[keep] for k, v in result.items()}
 
         results.append(result)

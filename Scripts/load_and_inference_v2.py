@@ -40,7 +40,7 @@ def load_v2(config, checkpoint, device):
     return model, postprocessor, input_size
 
 
-def detect_boxes(images, model, postprocessor, input_size, device, threshold=0.3, nms=False, iou_threshold=0.5,
+def detect_boxes(images, model, postprocessor, input_size, device, confidence_threshold=0.3, nms=False, iou_threshold=0.5,
                  filter_contained=False):
     """Runs one batch of PIL images, returns one result dict per image."""
     transforms = T.Compose([T.Resize(input_size), T.ToTensor()])  # same as the val transforms
@@ -52,7 +52,7 @@ def detect_boxes(images, model, postprocessor, input_size, device, threshold=0.3
         outputs = model(inputs)
         batch_results = postprocessor(outputs, target_sizes)
 
-    results = postprocessing(batch_results, threshold, nms, iou_threshold, filter_contained)
+    results = postprocessing(predictions=batch_results, image_size=input_size, confidence_threshold=confidence_threshold, nms=nms, iou_threshold=iou_threshold, filtering=filter_contained)
 
     return [{k: v.cpu() for k, v in r.items()} for r in results]
 
@@ -140,7 +140,7 @@ def main(args):
         images = [Image.open(frame).convert("RGB") for frame in batch]
         results = detect_boxes(
             images, model, postprocessor, input_size, device,
-            threshold=args.threshold, nms=args.nms, iou_threshold=args.iou_threshold,
+            confidence_threshold=args.confidence_threshold, nms=args.nms, iou_threshold=args.iou_threshold,
             filter_contained=args.filter,
         )
 
@@ -167,7 +167,7 @@ if __name__ == "__main__":
     parser.add_argument("-c", "--config", type=str,
                         default=str(RTDETR_DIR / "configs/rtdetrv2/rtdetrv2_r18vd_lumen.yml"),
                         help="Training config the checkpoint was trained with")
-    parser.add_argument("--threshold", type=float, default=0.3, help="Minimum confidence score to keep a box")
+    parser.add_argument("--confidence-threshold", type=float, default=0.3, help="Minimum confidence score to keep a box")
     parser.add_argument("--nms", action="store_true", help="Apply non-maximum suppression to remove overlapping boxes")
     parser.add_argument("--iou-threshold", type=float, default=0.5, help="IoU above which overlapping boxes are suppressed (only with --nms)")
     parser.add_argument("--filter", action="store_true",
